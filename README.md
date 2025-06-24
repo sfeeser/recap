@@ -9,11 +9,11 @@ This server provides both an API for student interaction with exams and an admin
 - Project Structure
 - Prerequisites
 - Setup Guide
-  - Clone the Repository      Step 1
-  - PostgreSQL Database Setup Step 2-7
-  - Create config.yaml        Step 8
-  - Prepare Exam Content Dir  Step 9
-  - Initialize Go Module      Step 10 - 11
+  - Clone the Repository      `Step 1`
+  - PostgreSQL Database Setup `Steps 2-7`
+  - Create config.yaml        `Step 8`
+  - Prepare Exam Content Dir  `Step 9`
+  - Initialize Go Module      `Step 10 - 11`
 
 
 ### Features
@@ -36,6 +36,7 @@ Question Validity Scoring: Calculates a validity score for questions based on st
 ### Project Structure
 The RECAP server codebase is organized into the following directories (Go packages):
 
+```txt
 recap-server/
 ├── main.go               # Main application entry point and server setup
 ├── config/               # Configuration loading and structures
@@ -63,6 +64,7 @@ recap-server/
 │   ├── setup_recap_user.sh
 │   └── show_recap_db.sh
 └── config.yaml           # Application configuration file (create from example below)
+```
 
 ### Prerequisites
 Before you begin, ensure you have the following installed:
@@ -80,6 +82,7 @@ Follow these steps to get the RECAP server up and running on your local machine.
   ```
   git clone https://github.com/your-repo/recap-server.git # Replace with actual repo URL
   cd recap-server
+  ```
 
 2. PostgreSQL Database Setup You'll need a PostgreSQL database named recap_db and a user named recap_user with password recap_pass that has privileges to create/drop databases. We'll use provided helper scripts for this. Edit scripts/setup_recap_user.sh and SUPERUSER_DB_USER, SUPERUSER_DB_PASSWORD, DB_HOST, and DB_PORT with your actual PostgreSQL superuser credentials and server details.
 
