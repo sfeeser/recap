@@ -1,0 +1,67 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.rpm
+*.deb
+
+# Test binaries
+*_test
+
+# Output of the go build command
+/recap-server  # If you build directly to the root, ignore the binary
+/bin/          # Standard location for Go binaries
+/build/        # Common build output directory
+
+# Dependency directories (remove the "vendor/" if you're not using modules mode)
+vendor/
+go.sum         # go.sum changes frequently; some prefer to ignore it
+               # However, it's generally recommended to commit go.sum for reproducibility.
+               # Uncomment the line above if you explicitly want to ignore it.
+
+# Log files
+*.log
+log/
+tmp/
+
+# Configuration files
+# IMPORTANT: config.yaml should be ignored because it contains sensitive data like passwords and JWT keys.
+# Developers should create their own local config.yaml based on a config.yaml.example.
+config.yaml
+
+# IDEs and editors
+.idea/ # JetBrains IDEs (IntelliJ, GoLand)
+.vscode/ # VS Code
+*.iml
+.project
+.classpath
+.settings/
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# OS generated files
+. নগদ/
+.trash/
+*~
+*.swp
+*.bak
+*.tmp
+*.swo
+
+# Environment variables files
+.env
+.env.*
+
+# Data directories created by the application (if not meant to be versioned)
+# If alta3_labs is primarily for local testing and not committed, ignore it.
+# If it's a sub-module or externally managed repo, it might be gitignored by default.
+/alta3_labs/
+
+# Local database files (if not using an external PostgreSQL instance)
+# If you're running PostgreSQL directly on your machine and it creates local data files
+# in the project directory. For external/Docker PostgreSQL, these won't apply.
+*.db
+*.sqlite3
+*.psql_history
+
