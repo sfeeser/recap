@@ -162,45 +162,45 @@ Follow these steps to get the RECAP server up and running on your local machine.
 
 9. Prepare Exam Content Directory. The RECAP server expects exam content (course metadata and questions) to be available locally in a specific structure, mimicking a GitHub repository.
 
-  a. Create a github repo called `labs`  Inside that directory, create the following directory structure:
+    a. Create a github repo called `labs`  Inside that directory, create the following directory structure:
 
-    ```
-    mkdir -p courses/unique-directory-for-each-exam
-    ```
+      ```
+      mkdir -p courses/unique-directory-for-each-exam
+      ```
 
-  b. for instance, given course `AA-ANS100` 
+    b. for instance, given course `AA-ANS100` 
 
-    ```
-    mkdir -p courses/AA-AMS100
-    touch courses/AA-AMS100/course.yaml
-    touch courses/AA-AMS100/exam_bank.csv
-    ```
+      ```
+      mkdir -p courses/AA-AMS100
+      touch courses/AA-AMS100/course.yaml
+      touch courses/AA-AMS100/exam_bank.csv
+      ```
 
-  c. yaml format
+    c. yaml format
 
-    ```
-    marketing_name: Introduction to Ansible
-    course_code: AA-ANS100
-    duration_days: 3
-    responsibility: your_github_username # Your GitHub username or maintainer's
-    ```
+      ```
+      marketing_name: Introduction to Ansible
+      course_code: AA-ANS100
+      duration_days: 3
+      responsibility: your_github_username # Your GitHub username or maintainer's
+      ```
 
-  d. Example alta3_labs/courses/AA-ANS100/exam_bank.csv:
+    d. Example alta3_labs/courses/AA-ANS100/exam_bank.csv:
 
-    ```
-    schema_version,1.0,,,,,,,,,,,,,,,
-    min_questions,10,,,,,,,,,,,,,,,
-    max_questions,10,,,,,,,,,,,,,,,
-    exam_time,15,,,,,,,,,,,,,,,
-    passing_score,70,,,,,,,,,,,,,,,
-    domains,Command Line:0.5|YAML:0.5,,,,,,,,,,,,,
-    single,Which command runs a playbook?,Use ansible-playbook.,Command Line,,,,,ansible-playbook,TRUE,,ansible,FALSE,,ansible-doc,FALSE,,,,,,,,
-    fillblank,What is the file extension for Ansible playbooks?,YAML files use .yaml or .yml extensions.,YAML,,text,yaml|yml,,,,,,,,,,
-    fillblank,Which command displays system facts in Ansible?,ansible -m setup hostname,Command Line,,terminal,ansible -m setup hostname,,,,,,,,,,
-    single,What is YAML typically used for in Ansible?,Data serialization and configuration.,YAML,,,,,Data serialization,TRUE,,Command execution,FALSE,,Scripting,FALSE,,,,,,,,
-    ```
+      ```
+      schema_version,1.0,,,,,,,,,,,,,,,
+      min_questions,10,,,,,,,,,,,,,,,
+      max_questions,10,,,,,,,,,,,,,,,
+      exam_time,15,,,,,,,,,,,,,,,
+      passing_score,70,,,,,,,,,,,,,,,
+      domains,Command Line:0.5|YAML:0.5,,,,,,,,,,,,,
+      single,Which command runs a playbook?,Use ansible-playbook.,Command Line,,,,,ansible-playbook,TRUE,,ansible,FALSE,,ansible-doc,FALSE,,,,,,,,
+      fillblank,What is the file extension for Ansible playbooks?,YAML files use .yaml or .yml extensions.,YAML,,text,yaml|yml,,,,,,,,,,
+      fillblank,Which command displays system facts in Ansible?,ansible -m setup hostname,Command Line,,terminal,ansible -m setup hostname,,,,,,,,,,
+      single,What is YAML typically used for in Ansible?,Data serialization and configuration.,YAML,,,,,Data serialization,TRUE,,Command execution,FALSE,,Scripting,FALSE,,,,,,,,
+      ```
 
-    > Note: Ensure your exam_bank.csv file has exactly 17 columns as specified by the protocol, even if some are empty (use empty placeholders ,,,,).
+      > Note: Ensure your exam_bank.csv file has exactly 17 columns as specified by the protocol, even if some are empty (use empty placeholders ,,,,).
 
 10. Initialize Go Module. From the recap-server root directory, initialize your Go module and download dependencies:
 
