@@ -9,11 +9,11 @@ This server provides both an API for student interaction with exams and an admin
 - Project Structure
 - Prerequisites
 - Setup Guide
-  - Clone the Repository      `Step 1`
-  - PostgreSQL Database Setup `Steps 2-7`
-  - Create config.yaml        `Step 8`
-  - Prepare Exam Content Dir  `Step 9`
-  - Initialize Go Module      `Step 10 - 11`
+  1. Clone the Repository
+  2. PostgreSQL Database Setup
+  3. Create config.yaml
+  4. Prepare Exam Content Dir
+  5. Initialize Go Module 
 
 
 ### Features
@@ -84,44 +84,26 @@ Follow these steps to get the RECAP server up and running on your local machine.
   cd recap-server
   ```
 
-2. PostgreSQL Database Setup You'll need a PostgreSQL database named recap_db and a user named recap_user with password recap_pass that has privileges to create/drop databases. We'll use provided helper scripts for this. Edit scripts/setup_recap_user.sh and SUPERUSER_DB_USER, SUPERUSER_DB_PASSWORD, DB_HOST, and DB_PORT with your actual PostgreSQL superuser credentials and server details.
-
-  ```
-  vim scripts/setup_recap_user.sh
-  ```
-
-3. Make that file executable
-
-  ```
-  chmod +x scripts/setup_recap_user.sh
-  ```
-
-4. Run the script to creat the recap_user
-
-  ```
-  ./scripts/setup_recap_user.sh
-  ```
-
-5. Now prepare the next bash script to set up the recap databse.  This script will delete the dataabase if it is present, so you have been warned! 
-
-  ```
-  vim scripts/reset_db.sh
-  ```
-
-6. Make that file executable
-
-  ```
-  chmod +x cripts/reset_db.sh
-  ```
-
-7. Run the script to creat the recap_user
-
-  ```
-  ./scripts/reset_db.sh
-  ```
+2. PostgreSQL Database Setup You will need the posgres SUPERUSER_DB_USER and SUPERUSER_DB_PASSWORD, DB_HOST, and DB_PORT to do the following:
 
 
-8. Now edit the config.yaml file. Create a file named config.yaml in the recap-server root directory. This file will hold your application's configuration.
+    a. Access the server as superuser
+
+      ```
+      psql -U roadmatrix -d postgres -h 127.0.0.1
+      ```
+      > Enter the password for your superuser
+
+    b. Add recap_user with its password. Please replace `reccap_db` with your own password.
+
+      ```
+      CREATE USER recap_user WITH PASSWORD 'recap-pass';
+      CREATE DATABASE recap_db OWNER recap_user;
+      ```
+
+      > Now recap_user now can control the recap_db
+
+3. Now edit the config.yaml file. Create a file named config.yaml in the recap-server root directory. This file will hold your application's configuration.
 
   ```
   vim config.yaml
