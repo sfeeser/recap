@@ -17,21 +17,21 @@ This server provides both an API for student interaction with exams and an admin
 
 
 ### Features
-Dynamic Exam Generation: Creates unique practice exams from a pool of questions, adhering to domain weighting rules and ensuring no question reuse within a given exam bank version.
+- Dynamic Exam Generation: Creates unique practice exams from a pool of questions, adhering to domain weighting rules and ensuring no question reuse within a given exam bank version.
 
-Multiple Question Types: Supports single-choice, multiple-choice (select all), and fill-in-the-blank questions (with text or terminal input options).
+- Multiple Question Types: Supports single-choice, multiple-choice (select all), and fill-in-the-blank questions (with text or terminal input options).
 
-CSV-based Content Management: Exam questions and course metadata are defined in exam_bank.csv and course.yaml files, respectively, stored in a designated GitHub repository.
+- CSV-based Content Management: Exam questions and course metadata are defined in exam_bank.csv and course.yaml files, respectively, stored in a designated GitHub repository.
 
-PostgreSQL Backend: Stores all exam data, user attempts, and administrative logs.
+- PostgreSQL Backend: Stores all exam data, user attempts, and administrative logs.
 
-FIRM Authentication Integration: Secures API and admin access using FIRM JWTs for email-based identity.
+- FIRM Authentication Integration: Secures API and admin access using FIRM JWTs for email-based identity.
 
-Comprehensive Admin Interface: Provides a server-rendered web UI for managing courses, reviewing error logs, tracking user activity, and analyzing question performance.
+- Comprehensive Admin Interface: Provides a server-rendered web UI for managing courses, reviewing error logs, tracking user activity, and analyzing question performance.
 
-Automated Ingestion & Validation: Periodically syncs with the GitHub repository, validates content, and regenerates exams.
+- Automated Ingestion & Validation: Periodically syncs with the GitHub repository, validates content, and regenerates exams.
 
-Question Validity Scoring: Calculates a validity score for questions based on student performance.
+- Question Validity Scoring: Calculates a validity score for questions based on student performance.
 
 ### Project Structure
 The RECAP server codebase is organized into the following directories (Go packages):
