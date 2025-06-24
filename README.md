@@ -1,11 +1,10 @@
 # recap
 A RECAP Server
 
+Example configuration file for RECAP Go Backend
+Copy this to config.yaml and adjust values as needed.
 
-<!-- --- recap-server/config.yaml.example --- -->
-# Example configuration file for RECAP Go Backend
-# Copy this to config.yaml and adjust values as needed.
-
+```
 # Server settings
 SERVER_PORT: ":8080"
 GIN_MODE: "debug" # Options: debug, release, test
@@ -30,3 +29,4 @@ GITHUB:
 # In a production setup, this would typically be triggered by GitHub webhooks.
 # Valid time units: "ns", "us" (or "µs"), "ms", "s", "m", "h"
 INGESTION_INTERVAL: "5m"
+```
