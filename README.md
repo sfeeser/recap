@@ -1,6 +1,32 @@
 # recap
 A RECAP Server
 
+```txt
+recap-server/
+├── main.go
+├── config/
+│   └── config.go
+├── db/
+│   └── db.go
+├── models/
+│   └── models.go
+├── ingestion/
+│   └── ingestion.go
+├── exam/
+│   └── generator.go
+├── handlers/
+│   ├── api_handlers.go
+│   └── admin_handlers.go
+├── middleware/
+│   └── auth.go
+├── utils/
+│   └── utils.go
+├── templates/
+│   ├── layout.html
+│   └── admin_dashboard.html
+└── config.yaml  # Create this file based on confi
+```
+
 Example configuration file for RECAP Go Backend
 Copy this to config.yaml and adjust values as needed.
 
