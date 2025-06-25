@@ -1,34 +1,29 @@
-// --- recap-server/db/db.go ---
-package db
 
+package db
 import (
 	"context"
 	"fmt"
 	"log"
 	"time"
-
+	// "database/sql" // REMOVED: This import is not directly used in this file's functions.
+	// "recap-server/models" // REMOVED: This import is not directly used by types/functions within this file.
 	"github.com/jackc/pgx/v5/pgxpool"
-	"recap-server/models"
 )
-
 // InitDB initializes the PostgreSQL database connection pool
 func InitDB(connString string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(context.Background(), connString)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
-
 	// Ping the database to verify connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
-
 	log.Println("Successfully connected to PostgreSQL database!")
 	return pool, nil
 }
-
 // CreateSchema sets up the necessary tables for RECAP.
 // In a production environment, use a proper migration tool (e.g., golang-migrate).
 func CreateSchema(pool *pgxpool.Pool) error {
@@ -41,7 +36,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		marketing_name TEXT,
 		responsibility VARCHAR(255)
 	);
-
 	CREATE TABLE IF NOT EXISTS domains (
 		id SERIAL PRIMARY KEY,
 		course_id INT NOT NULL,
@@ -49,7 +43,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
 		UNIQUE (course_id, name) -- Ensure domain names are unique per course
 	);
-
 	CREATE TABLE IF NOT EXISTS questions (
 		id SERIAL PRIMARY KEY,
 		domain_id INT NOT NULL,
@@ -65,7 +58,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
 		UNIQUE (question_text, exam_bank_version) -- Ensure unique questions per version
 	);
-
 	CREATE TABLE IF NOT EXISTS choices (
 		id SERIAL PRIMARY KEY,
 		question_id INT NOT NULL,
@@ -74,7 +66,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		explanation TEXT,
 		FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 	);
-
 	CREATE TABLE IF NOT EXISTS fill_blank_answers (
 		id SERIAL PRIMARY KEY,
 		question_id INT NOT NULL,
@@ -82,7 +73,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
 		UNIQUE (question_id, acceptable_answer)
 	);
-
 	CREATE TABLE IF NOT EXISTS exams (
 		id SERIAL PRIMARY KEY,
 		course_id INT NOT NULL,
@@ -96,7 +86,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		domain_weights JSONB NOT NULL, -- Store domain weights as JSONB
 		FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 	);
-
 	CREATE TABLE IF NOT EXISTS exam_questions (
 		id SERIAL PRIMARY KEY,
 		exam_id INT NOT NULL,
@@ -108,13 +97,11 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		UNIQUE (exam_id, question_id), -- A question appears only once in an exam
 		UNIQUE (exam_id, question_order) -- Order is unique within an exam
 	);
-
 	CREATE TABLE IF NOT EXISTS students (
 		email VARCHAR(255) PRIMARY KEY
 		-- FIRM handles the actual user management (e.g., account status, roles)
 		-- FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE -- Assumes a 'users' table from FIRM
 	);
-
 	CREATE TABLE IF NOT EXISTS exam_attempts (
 		id SERIAL PRIMARY KEY,
 		exam_id INT NOT NULL,
@@ -126,7 +113,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
 		FOREIGN KEY (email) REFERENCES students(email) ON DELETE CASCADE
 	);
-
 	CREATE TABLE IF NOT EXISTS user_answers (
 		id SERIAL PRIMARY KEY,
 		attempt_id INT NOT NULL,
@@ -139,7 +125,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		FOREIGN KEY (exam_question_id) REFERENCES exam_questions(id) ON DELETE CASCADE,
 		UNIQUE (attempt_id, exam_question_id) -- User answers a question once per attempt
 	);
-
 	CREATE TABLE IF NOT EXISTS error_logs (
 		id SERIAL PRIMARY KEY,
 		timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -151,7 +136,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		error_message TEXT NOT NULL,
 		suggested_fix TEXT
 	);
-
 	CREATE TABLE IF NOT EXISTS admin_events (
 		id SERIAL PRIMARY KEY,
 		timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -160,7 +144,6 @@ func CreateSchema(pool *pgxpool.Pool) error {
 		target TEXT,        -- e.g., course_code, question_id, user_email
 		notes TEXT
 	);
-
 	CREATE TABLE IF NOT EXISTS settings (
 		key VARCHAR(255) PRIMARY KEY,
 		value TEXT NOT NULL,
@@ -173,14 +156,12 @@ func CreateSchema(pool *pgxpool.Pool) error {
 	if err != nil {
 		return fmt.Errorf("error executing schema SQL: %w", err)
 	}
-
 	// Insert default settings if not already present
 	defaultSettings := map[string]string{
 		"rate_limit_api_per_hour":    "100",
 		"rate_limit_admin_per_hour":  "50",
 		"question_validity_threshold":"0.25", // Bottom 25% for low-scoring
 	}
-
 	for key, value := range defaultSettings {
 		_, err := pool.Exec(context.Background(), `
 			INSERT INTO settings (key, value, description)
@@ -191,11 +172,8 @@ func CreateSchema(pool *pgxpool.Pool) error {
 			log.Printf("Warning: Failed to insert default setting %s: %v", key, err)
 		}
 	}
-
-
 	return nil
 }
-
 // LogError adds an entry to the error_logs table
 func LogError(pool *pgxpool.Pool, source, courseCode, filePath string, lineNumber int, fieldName, errMsg, fixSug string) {
 	_, err := pool.Exec(context.Background(), `
@@ -206,7 +184,6 @@ func LogError(pool *pgxpool.Pool, source, courseCode, filePath string, lineNumbe
 		log.Printf("ERROR: Failed to log error to database: %v. Original error: %s", err, errMsg)
 	}
 }
-
 // LogAdminEvent adds an entry to the admin_events table
 func LogAdminEvent(pool *pgxpool.Pool, actor, action, target, notes string) {
 	_, err := pool.Exec(context.Background(), `
@@ -217,7 +194,6 @@ func LogAdminEvent(pool *pgxpool.Pool, actor, action, target, notes string) {
 		log.Printf("ERROR: Failed to log admin event to database: %v. Event: %s by %s on %s", err, action, actor, target)
 	}
 }
-
 // GetSetting fetches a setting value from the settings table
 func GetSetting(pool *pgxpool.Pool, key string) (string, error) {
     var value string
@@ -227,7 +203,6 @@ func GetSetting(pool *pgxpool.Pool, key string) (string, error) {
     }
     return value, nil
 }
-
 // GetAllCourseCodes fetches all course codes from the courses table.
 func GetAllCourseCodes(pool *pgxpool.Pool) ([]string, error) {
 	rows, err := pool.Query(context.Background(), "SELECT course_code FROM courses")
@@ -235,7 +210,6 @@ func GetAllCourseCodes(pool *pgxpool.Pool) ([]string, error) {
 		return nil, fmt.Errorf("failed to query course codes: %w", err)
 	}
 	defer rows.Close()
-
 	var courseCodes []string
 	for rows.Next() {
 		var code string

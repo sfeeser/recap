@@ -1,11 +1,8 @@
-// --- recap-server/models/models.go ---
-package models
 
+package models
 import (
-	"encoding/json"
 	"time"
 )
-
 // Course struct represents a course
 type Course struct {
 	ID            int        `json:"id"`
@@ -16,14 +13,12 @@ type Course struct {
 	Responsibility string    `json:"responsibility"`
 	ExamCount     int        `json:"exam_count,omitempty"` // For API response
 }
-
 // Domain struct represents a topic domain within a course
 type Domain struct {
 	ID       int    `json:"id"`
 	CourseID int    `json:"course_id"`
 	Name     string `json:"name"`
 }
-
 // Question struct represents a question
 type Question struct {
 	ID              int     `json:"id"`
@@ -37,11 +32,12 @@ type Question struct {
 	ValidityScore   *float64 `json:"validity_score"`
 	Flagged         bool    `json:"flagged"`
 	ExamBankVersion string  `json:"exam_bank_version"`
+	ExamQuestionID  int     `json:"exam_question_id,omitempty"` // ADDED: Field for API response for specific exam questions
 	// For API responses, might also contain choices/acceptable answers
 	Choices          []Choice `json:"choices,omitempty"`
 	AcceptableAnswers []string `json:"acceptable_answers,omitempty"`
+    QuestionDomainName string `json:"question_domain_name"` // Used internally for exam generation
 }
-
 // Choice struct represents an answer choice for MCQ
 type Choice struct {
 	ID          int    `json:"choice_id"`
@@ -51,14 +47,18 @@ type Choice struct {
 	Explanation string `json:"explanation"`
 	Order       string `json:"order"` // 'A', 'B', 'C' for frontend
 }
-
 // FillBlankAnswer struct represents an acceptable answer for fill-in-the-blank
 type FillBlankAnswer struct {
 	ID             int    `json:"id"`
 	QuestionID     int    `json:"question_id"`
 	AcceptableAnswer string `json:"acceptable_answer"`
 }
-
+// ExamPlan struct is used by the exam generation logic to define the structure of exams.
+type ExamPlan struct {
+	NumExams         int
+	QuestionsPerExam int
+	PerDomainPerExam map[string]int
+}
 // Exam struct represents a generated exam
 type Exam struct {
 	ID              int                  `json:"exam_id"`
@@ -68,11 +68,10 @@ type Exam struct {
 	ExamBankVersion string               `json:"exam_bank_version"`
 	MinQuestions    int                  `json:"min_questions"`
 	MaxQuestions    int                  `json:"max_questions"`
-	ExamTime        int                  `json:"exam_time"` // in minutes
+	ExamTime        int                  `json:"time_limit_minutes"` // Renamed from exam_time to match API
 	PassingScore    float64              `json:"passing_score"`
 	DomainWeights   map[string]float64 `json:"domain_weights"`
 }
-
 // ExamQuestion struct links a question to an exam and its order
 type ExamQuestion struct {
 	ID              int    `json:"exam_question_id"`
@@ -81,7 +80,6 @@ type ExamQuestion struct {
 	QuestionOrder   int    `json:"question_order"`
 	ExamBankVersion string `json:"exam_bank_version"`
 }
-
 // ExamAttempt struct represents a student's attempt at an exam
 type ExamAttempt struct {
 	ID          int        `json:"id"`
@@ -92,7 +90,6 @@ type ExamAttempt struct {
 	ScorePercent *int      `json:"score_percent"` // Pointer to allow NULL
 	Mode        string     `json:"mode"`
 }
-
 // UserAnswer struct represents a student's answer to a specific exam question
 type UserAnswer struct {
 	ID             int    `json:"id"`
@@ -101,13 +98,11 @@ type UserAnswer struct {
 	ChoiceIDs      []int  `json:"choice_ids"`  // For MCQ
 	TextAnswer     *string `json:"text_answer"` // For fill-in-the-blank
 }
-
 // ExamSessionRequest for starting an exam
 type ExamSessionRequest struct {
 	ExamID int    `json:"exam_id" binding:"required"`
 	Mode   string `json:"mode" binding:"required,oneof=practice simulation"`
 }
-
 // ExamSessionResponse for starting an exam
 type ExamSessionResponse struct {
 	SessionID        string     `json:"session_id"` // This is the exam_attempt.id as a string
@@ -116,14 +111,12 @@ type ExamSessionResponse struct {
 	TimeLimitMinutes int        `json:"time_limit_minutes"`
 	Questions        []Question `json:"questions"` // Questions for the session (abridged)
 }
-
 // AnswerRequest for submitting an answer
 type AnswerRequest struct {
 	ExamQuestionID int   `json:"exam_question_id" binding:"required"`
 	ChoiceIDs      []int `json:"choice_ids"`   // For single/multi-choice
 	CommandText    string `json:"command_text"` // For fill-in-the-blank (maps to text_answer)
 }
-
 // AnswerResponse for practice mode feedback
 type AnswerResponse struct {
 	Correct        bool         `json:"correct"`
@@ -131,14 +124,12 @@ type AnswerResponse struct {
 	Hint           *string      `json:"hint,omitempty"` // For fuzzy logic in fillblank
 	ChoiceFeedback []ChoiceFeedback `json:"choice_feedback,omitempty"`
 }
-
 // ChoiceFeedback provides per-choice explanation in practice mode
 type ChoiceFeedback struct {
 	ChoiceID    int    `json:"choice_id"`
 	IsCorrect   bool   `json:"is_correct"`
 	Explanation string `json:"explanation"`
 }
-
 // ExamStatusResponse for checking progress
 type ExamStatusResponse struct {
 	Completed      bool   `json:"completed"`
@@ -146,7 +137,6 @@ type ExamStatusResponse struct {
 	RemainingCount int    `json:"remaining_count"`
 	TimeRemaining  string `json:"time_remaining"` // Formatted as "HH:MM:SS"
 }
-
 // ExamSubmissionResponse for finalizing the session
 type ExamSubmissionResponse struct {
 	ScorePercent   int                  `json:"score_percent"`
@@ -154,7 +144,6 @@ type ExamSubmissionResponse struct {
 	DomainBreakdown map[string]int     `json:"domain_breakdown"`
 	DetailedReport []DetailedQuestionReport `json:"detailed_report"`
 }
-
 // DetailedQuestionReport provides per-question results
 type DetailedQuestionReport struct {
 	Question       string   `json:"question"`
@@ -163,7 +152,6 @@ type DetailedQuestionReport struct {
 	Result         string   `json:"result"` // "correct", "incorrect", "skipped"
 	Explanation    string   `json:"explanation"`
 }
-
 // StudentHistoryEntry represents a past exam attempt for a student
 type StudentHistoryEntry struct {
 	ExamTitle      string           `json:"exam_title"`
@@ -171,7 +159,6 @@ type StudentHistoryEntry struct {
 	Timestamp      time.Time        `json:"timestamp"`
 	DomainBreakdown map[string]int `json:"domain_breakdown"`
 }
-
 // AdminCourseCreateRequest for admin UI
 type AdminCourseCreateRequest struct {
 	Name           string `form:"name" binding:"required"`
@@ -180,7 +167,6 @@ type AdminCourseCreateRequest struct {
 	MarketingName  string `form:"marketing_name" binding:"required"`
 	Responsibility string `form:"responsibility"`
 }
-
 // ErrorLog represents an entry in the error_logs table
 type ErrorLog struct {
 	ID          int       `json:"id"`
@@ -193,7 +179,6 @@ type ErrorLog struct {
 	ErrorMessage string   `json:"error_message"`
 	SuggestedFix *string  `json:"suggested_fix"`
 }
-
 // AdminEvent represents an entry in the admin_events table
 type AdminEvent struct {
 	ID        int       `json:"id"`
@@ -203,7 +188,6 @@ type AdminEvent struct {
 	Target    string    `json:"target"`
 	Notes     string    `json:"notes"`
 }
-
 // QuestionStats for admin question_stats page
 type QuestionStats struct {
 	QuestionID    int       `json:"question_id"`
@@ -215,7 +199,6 @@ type QuestionStats struct {
 	TimesAttempted int      `json:"times_attempted"`
 	CorrectCount  int       `json:"correct_count"`
 }
-
 // Setting represents an entry in the settings table
 type Setting struct {
 	Key         string    `json:"key"`
@@ -224,7 +207,6 @@ type Setting struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	UpdatedBy   string    `json:"updated_by"`
 }
-
 // CourseYAML for parsing course.yaml
 type CourseYAML struct {
 	MarketingName string `yaml:"marketing_name"`
@@ -232,7 +214,6 @@ type CourseYAML struct {
 	DurationDays  int    `yaml:"duration_days"`
 	Responsibility string `yaml:"responsibility"`
 }
-
 // ExamBankMetadata for parsing exam_bank.csv metadata rows
 type ExamBankMetadata struct {
 	SchemaVersion string             `csv:"schema_version"`
@@ -242,7 +223,6 @@ type ExamBankMetadata struct {
 	PassingScore  float64            `csv:"passing_score"`
 	Domains       map[string]float64 `csv:"domains"` // Will be parsed from string
 }
-
 // ExamBankQuestion for parsing exam_bank.csv question rows
 type ExamBankQuestion struct {
 	QuestionType    string `csv:"question_type"`

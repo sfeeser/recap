@@ -1,24 +1,21 @@
-// --- recap-server/handlers/admin_handlers.go ---
-package handlers
 
+package handlers
 import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
+	"net/http" // ADDED: Import net/http for HTTP status constants
 	"strconv"
 	"strings"
 	"time"
-
+	"math" // ADDED: Import math package for math.Ceil
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-
 	"recap-server/db"
 	"recap-server/ingestion"
 	"recap-server/models"
-	"recap-server/utils"
+	// "recap-server/utils" // REMOVED: Not directly used in this file
 )
-
 // AdminDashboard renders the admin dashboard with metrics and recent activity.
 // GET /admin/dashboard
 func AdminDashboard(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -26,13 +23,10 @@ func AdminDashboard(pool *pgxpool.Pool) gin.HandlerFunc {
 		// Fetch metrics
 		var totalVerifiedUsers int
 		_ = pool.QueryRow(context.Background(), `SELECT COUNT(DISTINCT email) FROM exam_attempts WHERE completed_at IS NOT NULL`).Scan(&totalVerifiedUsers)
-
 		var totalExamsTaken int
 		_ = pool.QueryRow(context.Background(), `SELECT COUNT(id) FROM exam_attempts`).Scan(&totalExamsTaken)
-
 		var validationFailures int
 		_ = pool.QueryRow(context.Background(), `SELECT COUNT(id) FROM error_logs WHERE source = 'ingestion'`).Scan(&validationFailures)
-
 		// Recent activity: admin events
 		adminEventsQuery := `SELECT id, timestamp, action, actor, target, notes FROM admin_events ORDER BY timestamp DESC LIMIT 5`
 		adminEventsRows, err := pool.Query(context.Background(), adminEventsQuery)
@@ -47,7 +41,6 @@ func AdminDashboard(pool *pgxpool.Pool) gin.HandlerFunc {
 		} else {
 			log.Printf("Error fetching recent admin events: %v", err)
 		}
-
 		// Recent activity: latest ingested courses
 		recentCoursesQuery := `SELECT id, course_code, marketing_name FROM courses ORDER BY id DESC LIMIT 5`
 		recentCoursesRows, err := pool.Query(context.Background(), recentCoursesQuery)
@@ -62,7 +55,6 @@ func AdminDashboard(pool *pgxpool.Pool) gin.HandlerFunc {
 		} else {
 			log.Printf("Error fetching recent courses: %v", err)
 		}
-
 		c.HTML(http.StatusOK, "admin_dashboard", gin.H{
 			"Title":              "FIRM Admin Dashboard",
 			"TotalVerifiedUsers": totalVerifiedUsers,
@@ -74,7 +66,6 @@ func AdminDashboard(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminListCourses lists courses for admin.
 // GET /admin/courses
 func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -87,11 +78,9 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 		pageSize := 25
 		offset := (page - 1) * pageSize
-
 		searchQuery := c.Query("search")
 		orderBy := c.DefaultQuery("order_by", "course_code")
 		orderDir := c.DefaultQuery("order_dir", "asc")
-
 		// Validate order_by and order_dir to prevent SQL injection
 		validOrderBy := map[string]bool{"course_code": true, "marketing_name": true, "exams_taken": true}
 		if !validOrderBy[orderBy] {
@@ -100,7 +89,6 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 		if orderDir != "asc" && orderDir != "desc" {
 			orderDir = "asc"
 		}
-
 		query := fmt.Sprintf(`
 			SELECT
 				c.id, c.course_code, c.marketing_name, c.duration_days, c.responsibility,
@@ -113,7 +101,6 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 			ORDER BY %s %s
 			LIMIT $2 OFFSET $3
 		`, orderBy, orderDir)
-
 		rows, err := pool.Query(context.Background(), query, "%"+searchQuery+"%", pageSize, offset)
 		if err != nil {
 			log.Printf("Error querying courses for admin: %v", err)
@@ -121,7 +108,7 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
+		// FIXED: Added json tag to ExamsTaken in the anonymous struct literal
 		var courses []struct {
 			models.Course
 			ExamsTaken int `json:"exams_taken"`
@@ -129,7 +116,7 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 		for rows.Next() {
 			var course struct {
 				models.Course
-				ExamsTaken int
+				ExamsTaken int `json:"exams_taken"` // FIXED: Added json tag here
 			}
 			if err := rows.Scan(
 				&course.ID, &course.CourseCode, &course.MarketingName, &course.DurationDays, &course.Responsibility, &course.ExamsTaken,
@@ -140,13 +127,11 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			courses = append(courses, course)
 		}
-
 		// Count total records for pagination
 		var totalCourses int
 		countQuery := `SELECT COUNT(DISTINCT c.id) FROM courses c WHERE c.course_code ILIKE $1 OR c.marketing_name ILIKE $1`
 		pool.QueryRow(context.Background(), countQuery, "%"+searchQuery+"%").Scan(&totalCourses)
-		totalPages := int(math.Ceil(float64(totalCourses) / float64(pageSize)))
-
+		totalPages := int(math.Ceil(float64(totalCourses) / float64(pageSize))) // FIXED: math.Ceil is now available
 		c.HTML(http.StatusOK, "admin_courses", gin.H{
 			"Title":       "Manage Courses",
 			"Courses":     courses,
@@ -159,7 +144,6 @@ func AdminListCourses(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminCreateCourse handles creating a new course.
 // POST /admin/courses
 func AdminCreateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -169,7 +153,6 @@ func AdminCreateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		// Basic validation: Check if course_code already exists
 		var existingID int
 		err := pool.QueryRow(context.Background(), `SELECT id FROM courses WHERE course_code = $1`, req.CourseCode).Scan(&existingID)
@@ -177,7 +160,6 @@ func AdminCreateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("Course with code %s already exists", req.CourseCode)})
 			return
 		}
-
 		_, err = pool.Exec(context.Background(), `
 			INSERT INTO courses (name, course_code, duration_days, marketing_name, responsibility)
 			VALUES ($1, $2, $3, $4, $5)
@@ -187,12 +169,10 @@ func AdminCreateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create course"})
 			return
 		}
-
 		db.LogAdminEvent(pool, c.GetString("user_email"), "create_course", req.CourseCode, fmt.Sprintf("New course: %s (%s)", req.Name, req.CourseCode))
 		c.JSON(http.StatusCreated, gin.H{"message": "Course created successfully", "course_code": req.CourseCode})
 	}
 }
-
 // AdminUpdateCourse handles updating an existing course.
 // PUT /admin/courses/:course_code
 func AdminUpdateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -203,7 +183,6 @@ func AdminUpdateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		res, err := pool.Exec(context.Background(), `
 			UPDATE courses SET
 				name = $1,
@@ -217,47 +196,39 @@ func AdminUpdateCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update course"})
 			return
 		}
-
 		if res.RowsAffected() == 0 {
 			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Course with code %s not found", courseCode)})
 			return
 		}
-
 		db.LogAdminEvent(pool, c.GetString("user_email"), "update_course", courseCode, fmt.Sprintf("Updated course: %s", req.MarketingName))
 		c.JSON(http.StatusOK, gin.H{"message": "Course updated successfully", "course_code": courseCode})
 	}
 }
-
 // AdminDeleteCourse handles deleting a course.
 // DELETE /admin/courses/:course_code
 func AdminDeleteCourse(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		courseCode := c.Param("course_code")
-
 		res, err := pool.Exec(context.Background(), `DELETE FROM courses WHERE course_code = $1`, courseCode)
 		if err != nil {
 			log.Printf("Error deleting course %s: %v", courseCode, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete course"})
 			return
 		}
-
 		if res.RowsAffected() == 0 {
 			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Course with code %s not found", courseCode)})
 			return
 		}
-
 		db.LogAdminEvent(pool, c.GetString("user_email"), "delete_course", courseCode, fmt.Sprintf("Deleted course: %s", courseCode))
 		c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully", "course_code": courseCode})
 	}
 }
-
 // AdminErrorLogs displays validation error logs.
 // GET /admin/error_logs
 func AdminErrorLogs(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		searchQuery := c.Query("search")
 		searchSource := c.Query("source") // e.g., "ingestion", "exam_generation"
-
 		query := `
 			SELECT id, timestamp, source, course_code, file_path, line_number, field_name, error_message, suggested_fix
 			FROM error_logs
@@ -272,7 +243,6 @@ func AdminErrorLogs(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		var logs []models.ErrorLog
 		for rows.Next() {
 			var logEntry models.ErrorLog
@@ -285,7 +255,6 @@ func AdminErrorLogs(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			logs = append(logs, logEntry)
 		}
-
 		c.HTML(http.StatusOK, "admin_error_logs", gin.H{
 			"Title":        "Error Logs",
 			"ErrorLogs":    logs,
@@ -295,13 +264,11 @@ func AdminErrorLogs(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminUserActivity displays student exam attempts.
 // GET /admin/user_activity
 func AdminUserActivity(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		searchEmail := c.Query("search") // Filter by email
-
 		query := `
 			SELECT
 				ea.id, ea.email, e.title, ea.score_percent, ea.started_at, ea.completed_at
@@ -317,7 +284,6 @@ func AdminUserActivity(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		var attempts []struct {
 			ID          int
 			Email       string
@@ -343,7 +309,6 @@ func AdminUserActivity(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			attempts = append(attempts, attempt)
 		}
-
 		c.HTML(http.StatusOK, "admin_user_activity", gin.H{
 			"Title":       "User Activity",
 			"Attempts":    attempts,
@@ -352,14 +317,12 @@ func AdminUserActivity(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminQuestionStats displays question performance and allows flagging.
 // GET /admin/question_stats
 func AdminQuestionStats(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		searchQuery := c.Query("search")
 		searchDomain := c.Query("domain")
-
 		query := `
 			SELECT
 				q.id, q.question_text, q.question_type, d.name AS domain_name, q.validity_score, q.flagged,
@@ -388,7 +351,6 @@ func AdminQuestionStats(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		var stats []models.QuestionStats
 		for rows.Next() {
 			var qs models.QuestionStats
@@ -401,7 +363,6 @@ func AdminQuestionStats(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			stats = append(stats, qs)
 		}
-
 		c.HTML(http.StatusOK, "admin_question_stats", gin.H{
 			"Title":        "Question Statistics",
 			"Stats":        stats,
@@ -411,7 +372,6 @@ func AdminQuestionStats(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminSettings displays and handles updates for server settings.
 // GET/POST /admin/settings
 func AdminSettings(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -420,7 +380,6 @@ func AdminSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 			AdminUpdateSettings(pool)(c) // Delegate to update handler
 			return
 		}
-
 		rows, err := pool.Query(context.Background(), `SELECT key, value, description FROM settings ORDER BY key`)
 		if err != nil {
 			log.Printf("Error querying settings: %v", err)
@@ -428,7 +387,6 @@ func AdminSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-
 		var settings []models.Setting
 		for rows.Next() {
 			var s models.Setting
@@ -438,7 +396,6 @@ func AdminSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			settings = append(settings, s)
 		}
-
 		c.HTML(http.StatusOK, "admin_settings", gin.H{
 			"Title":     "Manage Server Settings",
 			"Settings":  settings,
@@ -446,7 +403,6 @@ func AdminSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 		})
 	}
 }
-
 // AdminUpdateSettings handles updating server settings.
 // POST /admin/settings
 func AdminUpdateSettings(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -459,17 +415,14 @@ func AdminUpdateSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 				updates[key] = values[0]
 			}
 		}
-
 		tx, err := pool.Begin(context.Background())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction for settings update"})
 			return
 		}
 		defer tx.Rollback(context.Background())
-
 		actor := c.GetString("user_email")
 		var failedUpdates []string
-
 		for key, value := range updates {
 			_, err := tx.Exec(context.Background(), `
 				UPDATE settings SET value = $1, updated_at = NOW(), updated_by = $2 WHERE key = $3
@@ -480,32 +433,26 @@ func AdminUpdateSettings(pool *pgxpool.Pool) gin.HandlerFunc {
 			}
 			db.LogAdminEvent(pool, actor, "update_setting", key, fmt.Sprintf("Set to: %s", value))
 		}
-
 		if len(failedUpdates) > 0 {
 			tx.Rollback(context.Background()) // Rollback if any update failed
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to update some settings: %s", strings.Join(failedUpdates, ", "))})
 			return
 		}
-
 		if err := tx.Commit(context.Background()); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit settings updates"})
 			return
 		}
-
 		c.JSON(http.StatusOK, gin.H{"message": "Settings updated successfully"})
 	}
 }
-
 // TriggerIngestion allows admin to manually trigger ingestion for a course.
 // POST /admin/ingest/:course_code
 func TriggerIngestion(pool *pgxpool.Pool, labsRepoPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		courseCode := c.Param("course_code")
 		actor := c.GetString("user_email") // Get actor from JWT
-
 		// In a real system, you might pull the latest from git here or ensure it's already updated.
 		// For now, it assumes the labsRepoPath is kept up-to-date by an external process.
-
 		err := ingestion.ProcessCourseData(pool, courseCode, labsRepoPath)
 		if err != nil {
 			log.Printf("Manual ingestion failed for %s: %v", courseCode, err)
@@ -513,7 +460,6 @@ func TriggerIngestion(pool *pgxpool.Pool, labsRepoPath string) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ingestion failed: %v", err)})
 			return
 		}
-
 		db.LogAdminEvent(pool, actor, "manual_ingestion_success", courseCode, "Ingestion and exam regeneration completed.")
 		c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Ingestion and exam regeneration for course '%s' triggered successfully. Check logs/admin dashboard for status.", courseCode)})
 	}
